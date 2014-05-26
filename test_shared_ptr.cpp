@@ -67,6 +67,8 @@ int main(int argc, char** argv)
   {
     std::cout << "step in inner" << std::endl;
     shared_ptr<foo> s2 = s1;
+    shared_ptr<foo> s3 = s1;
+    shared_ptr<foo> s4 = s1;
     std::cout << "step out inner" << std::endl;
     std::cout << "rc " << s1.get_rc() << std::endl;
     std::cout << "rc " << s2.get_rc() << std::endl;

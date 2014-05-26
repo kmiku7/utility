@@ -4,7 +4,7 @@
  * Create Date: 2014/05/25 23:59:58
  *
  * Brief:
- *  single thread version
+ *  thread-safe
  *
  **/
 
@@ -13,6 +13,9 @@
 #include <cstddef>
 #include <iostream>
 
+#ifdef __APPLE__
+#include <libkern/OSAtomic.h>
+#endif
 
 namespace kmtl
 {
@@ -26,15 +29,18 @@ public:
     if( pt == NULL)
       return;
 
-    ref_count = new size_t;
-    ptr = pt;
-    *ref_count = 1;
+    init(pt);
+
   }
 
   shared_ptr(const shared_ptr& rhs): ptr(rhs.ptr), ref_count(rhs.ref_count)
   {
     if( rhs.ptr != NULL)
-      ++(*ref_count);
+    {
+#ifdef __APPLE__
+      OSAtomicIncrement64Barrier(ref_count);
+#endif
+    }
   }
 
   ~shared_ptr()
@@ -53,7 +59,9 @@ public:
     ptr = rhs.ptr;
     ref_count = rhs.ref_count;
 
-    ++(*ref_count);
+#ifdef __APPLE__
+    OSAtomicIncrement64Barrier(ref_count);
+#endif
     return *this;
   }
 
@@ -65,9 +73,7 @@ public:
     if( pu == NULL)
       return;
 
-    ref_count = new size_t;
-    ptr = pu;
-    *ref_count = 1;
+    init(pu);
   }
     
   
@@ -76,27 +82,38 @@ public:
     return ptr;
   }
 
-  size_t get_rc() const
+  int64_t get_rc() const
   {
     return *ref_count;
   }
 private:
   T* ptr;
-  size_t* ref_count;
+#ifdef __APPLE__
+  volatile int64_t* ref_count;
+#endif
 
   void release()
   {
     if( ref_count == NULL)
       return;
 
-    --(*ref_count);
-    if( *ref_count == 0)
+#ifdef __APPLE__
+    if( OSAtomicDecrement64Barrier(ref_count) == 0)
     {
       delete ptr;
       delete ref_count;
     }
     ptr = NULL;
     ref_count = NULL;
+#endif
+  }
+
+  void init(T* pt)
+  {
+#ifdef __APPLE__
+    ref_count = new int64_t(1);
+#endif
+    ptr = pt;
   }
 
   // forbid
