@@ -1,4 +1,3 @@
-
 SRCS = $(wildcard src/*.cpp)
 HRDS = $(wildcard include/*.h)
 OBJS = $(addsuffix .o, $(basename $(SRCS)))
